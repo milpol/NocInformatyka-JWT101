@@ -1,0 +1,4 @@
+secret: very-secret
+
+server:
+  rootPath: /api/*

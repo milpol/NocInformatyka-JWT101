@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>JWT-On-Dropwizard</title>
+</head>
+<body>
+<div class="message" style="display: none;">
+    <p></p>
+</div>
+<div class="login-panel" style="display: none;">
+    <form method="post" action="">
+        <label>
+            Username:
+            <input type="text" name="username">
+        </label>
+        <label>
+            Password:
+            <input type="password" name="password">
+        </label>
+        <input type="submit" value="Login">
+    </form>
+</div>
+<div class="nav-panel">
+    <nav>
+        <ul>
+            <li><a href="#">Account</a></li>
+            <li><a href="#moderation">Moderation</a></li>
+            <li><a href="#administration">Administration</a></li>
+        </ul>
+        <hr/>
+        <a class="logout" href="#">Logout</a>
+    </nav>
+    <hr/>
+</div>
+<div class="content-panel">
+    <h1></h1>
+</div>
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script>
+    (function ($) {
+        var
+                token = '',
+                elements = {
+                    'login': $('.login-panel'),
+                    'navigation': $('.nav-panel'),
+                    'message': $('.message'),
+                    'content': $('.content-panel')
+                },
+                showMessage = function (message) {
+                    elements.content.html('<p>' + message + '</p>').show();
+                },
+                loadContent = function (section) {
+                    section = section.replace('#', '') || 'account';
+                    $.ajax({
+                        method: 'POST',
+                        url: '/api/' + section,
+                        headers: {
+                            'X-Authorization': token
+                        },
+                        success: function (data) {
+                            elements.login.hide();
+                            elements.navigation.show();
+                            elements.message.hide();
+                            elements.content.html('<h1>' + data + '</h1>').show();
+                        },
+                        error: function (data) {
+                            if (data.status === 401) {
+                                elements.login.show();
+                                elements.navigation.hide();
+                                elements.message.hide();
+                                elements.content.hide();
+                            } else if (data.status === 403) {
+                                elements.login.hide();
+                                elements.navigation.show();
+                                elements.content.hide();
+                                showMessage("Forbidden");
+                            }
+                        }
+                    });
+                };
+        $('.nav-panel li a').each(function (index, element) {
+            $(element).click(function () {
+                loadContent($(this).attr('href').substring(1));
+            });
+        });
+        $('.login-panel form input[type=submit]').click(function (e) {
+            var
+                    username = $('.login-panel input[name="username"]').val(),
+                    password = $('.login-panel input[name="password"]').val();
+
+            $('.login-panel label input').val('');
+
+            $.ajax({
+                url: '/api/auth/login',
+                method: 'POST',
+                contentType: 'application/json; charset=utf-8',
+                data: JSON.stringify({
+                    username: username,
+                    password: password
+                }),
+                success: function (data) {
+                    token = data;
+                    loadContent(window.location.hash);
+                },
+                error: function (data) {
+                    showMessage("Invalid username/password");
+                }
+            });
+
+            e.preventDefault();
+            return false;
+        });
+        $('.logout').click(function (e) {
+            e.preventDefault();
+            token = '';
+            loadContent(window.location.hash);
+            return false;
+        });
+
+        loadContent(window.location.hash);
+
+    })(jQuery);
+</script>
+</body>
+</html>
